@@ -12,7 +12,7 @@ You will work in git repo `tfidf-`*userid*.
 
 ### Reading in Reuters' XML
 
-As a first step, let's grab text from a Reuters article in XML format. Download the `reuters-vol1-disk1-subset.zip` 12.8M compressed Reuters corpus (44M uncompressed, 9165 files) from the files area of Canvas for this class.  This data should not be made public so please don't post the articles anywhere.  You can uncompress it to look at the files but we will process the zip file directly. The articles (text files) in the zip file look like this fictitious file's contents:
+As a first step, let's grab text from a Reuters article in XML format. Download the `reuters-vol1-disk1-subset.zip` 12.8M compressed Reuters corpus (44M uncompressed, 9164 files) from the files area of Canvas for this class.  This data should not be made public so please don't post the articles anywhere.  You can uncompress it to look at the files but we will process the zip file directly. The articles (text files) in the zip file look like this fictitious file's contents:
 
 ```xml
 <?xml version="1.0" encoding="iso-8859-1" ?>
@@ -36,7 +36,7 @@ As a first step, let's grab text from a Reuters article in XML format. Download 
 </newsitem>
 ```        
 
-Unlike in previous labs where we used the simple `untangle`, this time we will use `ElementTree` to process XML. (A [good tutorial on XML in Python](http://eli.thegreenplace.net/2012/03/15/processing-xml-in-python-with-elementtree/)). Given the text of a file as a string, use `ET.fromstring()` and `ElementTree()` to parse the XML text. From this XML tree, you can ask it to find the `title` tag. Then use XPath notation with `tree.iterfind()` to grab all of the tags underneath the `<text>` tag. In our case, these will be `<p>` tags so use XPath `.//text/*`, which means "*from the current node, find all text tag descendants then all of their children.*"
+Unlike in previous labs where we used the simple `untangle`, this time we will use `ElementTree` from the standard library to process XML. (A [good tutorial on XML in Python](http://eli.thegreenplace.net/2012/03/15/processing-xml-in-python-with-elementtree/)). Given the text of a file as a string, use `ET.fromstring()` and `ElementTree()` to parse the XML text. From this XML tree, you can ask it to find the `title` tag. Then use XPath notation with `tree.iterfind()` to grab all of the tags underneath the `<text>` tag. In our case, these will be `<p>` tags so use XPath `.//text/*`, which means "*from the current node, find all text tag descendants then all of their children.*"
 
 When you are packing the text together, make sure to put a space in between the elements you join. Otherwise, you might end up putting two words together forming a new, nonsense word. 
 
@@ -54,7 +54,7 @@ def gettext(xmltext):
 
 ### Tokenizing text
 
-Now that we have some raw text without all of the XML, let's learn how to properly tokenize English text. It is a multistep process:
+Now that we have some raw text without all of the XML, let's properly tokenize English text. It is a multistep process (and some of it you can take from prior projects/labs):
 
 1. Convert everything to lowercase
 2.  Strip punctuation, numbers, and `\r`, `\n`\, `\t`
@@ -86,7 +86,7 @@ def stemwords(words):
 
 ### Sample application
 
-Our sample application for tokenization, in `common.py`, will be summarizing an article by showing the most common words. The input file is specified as a commandline argument and used from Python via `sys.argv[1]`. Use the functions above to read in the XML, tokenize it, stem it, and then show the 10 most common words with their word count.  Use a `Counter` object to get the counts and wrap your main script stuff so that it only executes if we run `common.py` (as opposed to importing it):
+Our sample application for tokenization will be in `common.py` and will summarize an article by showing the most common words. The input file is specified as a commandline argument and used from Python via `sys.argv[1]`. Use the functions above to read in the XML, tokenize it, stem it, and then show the 10 most common words with their word count.  Use a `Counter` object to get the counts:
 
 ```python
 xmltext = ... text from filename in sys.argv[1] ...
@@ -200,7 +200,7 @@ leay 0.143
 gisborn 0.143
 charg 0.131
 new 0.130
-island 0.127
+island 0.128
 auckland 0.113
 effici 0.110
 pricipl 0.096
@@ -227,7 +227,7 @@ Function `gettext` is the imported function from `tfidf.py`.
 
 Some files might have non-ascii char so you need tell `TfidfVectorizer()` to not puke (raise an exception) upon decoding error characters. See the [doc](http://scikit-learn.org/dev/modules/generated/sklearn.feature_extraction.text.CountVectorizer.html#sklearn.feature_extraction.text.CountVectorizer).
 
-Once you create that `tfidf` object, you can call functions `fit` and `transform` or together as `fit_transform`. That will return to you a sparse matrix (not sure why) containing the index of the various words from the argument to `transform` plus the TFIDF scores:
+Once you create that `tfidf` object, you can call functions `fit` and `transform` or together as `fit_transform`. That will return to you a sparse matrix containing the index of the various words from the argument to `transform` plus the TFIDF scores:
 
 ```
   (0, 35257)	0.235473480686
@@ -286,7 +286,7 @@ Notice that `share` and `go` have dropped out and `tobacco` and `cigarett` have 
 
 *Just for fun, not required*
 
-To show how amazing TFIDF is, try an experiment where your `tokenize()` does not remove stopwords and remove parameter `stop_words` from the `TfidfVectorizer` object. The TFIDF output is still the same, at least in terms of word order, though the scores will change. For example, if you run it again on `131705newsML.xml` without removing stop words, you will see scores:
+To show how amazing TFIDF is, try an experiment where your `tokenize()` does not remove stopwords and then remove parameter `stop_words` from the `TfidfVectorizer` object. The TFIDF output is still the same, at least in terms of word order, though the scores will change. For example, if you run it again on `131705newsML.xml` without removing stop words, you will see scores:
 
 ```
 seita 0.708
@@ -313,7 +313,7 @@ I have provided a [starter kit](https://github.com/parrt/msan692/tree/master/hw/
 
 ## Deliverables
 
-In your repository `tfidf-`*userid*, you must have the following files:
+In your repository `tfidf-`*userid*, you must have the following files in the root of your repository directory:
  
 * `tfidf.py`; Implement methods `gettext()`, `tokenize()`, `stemwords()`, `compute_tfidf()`, `summarize()`, `load_corpus()`
 * `common.py`; Print most common 10 "*word* *score*" pairs
@@ -321,8 +321,12 @@ In your repository `tfidf-`*userid*, you must have the following files:
 
 ## Evaluation
 
-We will test your TFIDF functionality using `test_tfidf.py`, which uses the entire corpus for "training" but then uses just a small subset of the files for testing.
+We will test your TFIDF functionality using `test_tfidf.py`, which uses the entire corpus for "training" but then uses just a small subset of the files for testing. For example, on my machine:
 
-Any difference in words or TFIDF scores are treated as a 0 for that test. There are 12 randomly-selected test files used and you must get everything right for each file. I have computed the right values and store them in a pickled file, which is how the test compares your work for correctness.
+```bash
+$ python test_tfidf.py  ~/data/reuters-vol1-disk1-subset.zip 
+```
+
+Any difference in words or TFIDF scores are treated as a 0 for that test. There are 12 randomly-selected test files used and you must get everything right for each file. I have computed the right values and store them in a pickled file, `corpus.pkl`, which is how the test compares your work for correctness. (It compares the filename to list of (value,tfidf score) tuples).
 
 We will also make a quick check that your `common.py` and `summarize.py` scripts generate the right output.
