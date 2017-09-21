@@ -48,13 +48,12 @@ The description of those functions is in `doc2vec.py` from the starter kit, but 
 ```python
 def load_articles(articles_dirname, gloves):
     """
-    Load all .txt files under articles_dirname and return a table (list of lists)
+    Load all .txt files under articles_dirname and return a table (list of lists/tuples)
     where each record is a list of:
 
-      [filename, title, article-text-minus-title, wordvec-for-article-text]
+      [filename, title, article-text-minus-title, wordvec-centroid-for-article-text]
 
-    This record will be updated by add_doc2vecs() to include word vectors at position 3
-    of the record.  We use gloves parameter to compute the word vector.
+    We use gloves parameter to compute the word vectors and centroid.
     """
     ...
 ```
@@ -63,14 +62,15 @@ def load_articles(articles_dirname, gloves):
 def recommended(article, articles, n):
     """
     Return a list of the n articles (records with filename, title, etc...)
-    closest to article's word vector centroid.
+    closest to article's word vector centroid. The article is one of the elements
+    (tuple) from the articles list.
     """
     ...
 ```
 
 ### Web server
 
-Besides those core functions, you need to build a web server as well using flask. To learn how to launch a flask web server at Amazon, check out this [video](https://www.youtube.com/watch?v=qQncEJL6NHs&t=156s) I made. The server should respond to two different URLs: the list of articles is at `/` and each article is at something like `/article/business/353.txt`. The BBC corpus in directory `bbc` is organized with topic subdirectories and then a list of articles as text files:
+Besides those core functions, you need to build a web server as well using flask. See the video on [how to launch a flask web server at Amazon](https://www.youtube.com/watch?v=qQncEJL6NHs&t=156s) that I made for you. The server should respond to two different URLs: the list of articles is at `/` and each article is at something like `/article/business/353.txt`. The BBC corpus in directory `bbc` is organized with topic subdirectories and then a list of articles as text files:
 
 <img src="figures/bbc.png" width=300>
 
@@ -106,6 +106,33 @@ def article(topic,filename):
 
 Also note that we are using the template engine [jinja2](http://jinja.pocoo.org/docs/2.9/) that is built-in with flask. When you call `render_template()` from within a flask route method, it looks in the `templates` subdirectory for the file indicated in that function call. You need to pass in appropriate arguments to the two different page templates so the pages fill with data.
 
+### Your server will be attacked
+
+"Don't panic!" When you leave your web server up at port 80 for more than a few minutes, you will see people from around the web try to break into your computer. For example, you will see URLs like `/mysql/admin/`, `/phpmyadmin/`, `/dbadmin/`, `/mysql/`. The attacker is trying to use known exploits or default passwords for these various kinds of servers hoping to get in. You will see log entries printed from your flask server that look like this (138.202.1.109 was me):
+
+```
+$ sudo python server.py
+ * Running on http://0.0.0.0:80/ (Press CTRL+C to quit)
+138.202.1.109 - - [20/Sep/2017 20:02:45] "GET / HTTP/1.1" 200 -
+138.202.1.109 - - [20/Sep/2017 20:03:07] "GET / HTTP/1.1" 200 -
+138.202.1.109 - - [20/Sep/2017 20:03:09] "GET / HTTP/1.1" 200 -
+138.202.1.109 - - [20/Sep/2017 20:10:20] "GET / HTTP/1.1" 200 -
+89.133.128.188 - - [20/Sep/2017 20:12:31] "HEAD http://174.129.105.171:80/dbadmin/ HTTP/1.1" 404 -
+89.133.128.188 - - [20/Sep/2017 20:12:32] "HEAD http://174.129.105.171:80/pma/ HTTP/1.1" 404 -
+89.133.128.188 - - [20/Sep/2017 20:12:32] "HEAD http://174.129.105.171:80/db/ HTTP/1.1" 404 -
+89.133.128.188 - - [20/Sep/2017 20:12:32] "HEAD http://174.129.105.171:80/admin/ HTTP/1.1" 404 -
+89.133.128.188 - - [20/Sep/2017 20:12:32] "HEAD http://174.129.105.171:80/mysql/ HTTP/1.1" 404 -
+89.133.128.188 - - [20/Sep/2017 20:12:33] "HEAD http://174.129.105.171:80/database/ HTTP/1.1" 404 -
+89.133.128.188 - - [20/Sep/2017 20:12:33] "HEAD http://174.129.105.171:80/db/phpmyadmin/ HTTP/1.1" 404 -
+89.133.128.188 - - [20/Sep/2017 20:12:33] "HEAD http://174.129.105.171:80/db/phpMyAdmin/ HTTP/1.1" 404 -
+89.133.128.188 - - [20/Sep/2017 20:12:33] "HEAD http://174.129.105.171:80/sqlmanager/ HTTP/1.1" 404 -
+...
+```
+
+It only took 7 minutes for the server to be attacked. It was attacked by four others within a few minutes. Naturally none of the attackers broke in because my flask server doesn't support any of those URLs. According to `whois`, the IP addresses of those connecting to my server were from Austria, India, Hungary, some local Comcast customer, and Australia.  Naturally the attacker is probably exploiting a machine or a proxy in those locations and is in some other location.
+
+Anyway, the upshot is you don't have to worry about these attacks but it's something interesting to be aware of. The Internet is constantly being swept by target acquisition radar. Any server that opens up a port through the firewall will start getting hit almost immediately.
+
 ## Getting started
 
 Download the [starterkit](https://github.com/parrt/msan692/tree/master/hw/code/recommender), which has the following files and structure:
@@ -119,6 +146,56 @@ Download the [starterkit](https://github.com/parrt/msan692/tree/master/hw/code/r
 ```
 
 There are predefined functions with comments indicating the required functionality.
+
+## Launching your server at Amazon
+
+Creating a server that has all the appropriate software can be tricky so I have recorded a sequence that works for me.
+
+The first thing is to launch a server with different software than the simple  Amazon linux we have been using in class. We need one that has, for example, `numpy` and friends so let's use an *image* (snapshot of a disk with a bunch of stuff installed) that already has machine learning software installed: Use "*Deep Learning AMI Amazon Linux Version 3.1_Sep2017 - ami-bde90fc7*":
+
+<img src=figures/aws-ami.png width=500>
+
+Create a `t2.medium` size computer (in Oregon; it's cheaper)!  The cost is $0.047 per Hour, which is only $1.12 per day.
+
+When you try to connect, it will tell you to use user `root` but use `ec2-user` like we did for the other machines.  In other words, here's how I login:
+ 
+```bash
+$ ssh -i "parrt.pem" ec2-user@34.203.194.19
+```
+
+Then install software we need:
+
+```bash
+sudo pip install flask
+sudo yum install -y p7zip.x86_64
+sudo cp /usr/bin/7za /usr/bin/7z
+```
+
+Now, clone your repository into the home directory:
+
+```bash
+cd ~
+git clone https://github.com/USF-MSAN692/recommender-parrt.git
+cd recommender-parrt
+```
+
+Now, download the data you need and unzip:
+
+```bash
+wget https://s3-us-west-1.amazonaws.com/msan692/glove.6B.300d.txt
+wget https://s3-us-west-1.amazonaws.com/msan692/bbc.7z
+7z x bbc.7z
+```
+
+You should now be able to run your server:
+
+```bash
+sudo python server.py glove.6B.300d.txt bbc &
+```
+
+Don't forget to open up port 80 in the far wall for the server so that the outside world can access it. Make sure that you test from your laptop!
+
+Make sure the `IP.txt` file as the **public** IP address of your server on the line by itself!
 
 ## Deliverables
 
@@ -136,13 +213,15 @@ In your github repository, you should submit the following:
 
 ### AWS
 
-As part of your submission, you must launch a Linux instance at Amazon and install your software + necessary data. Then launch your server and keep it running for the duration of our grading period. We will notify you when it's okay to terminate that instance. Choose a server that is only one or two cents per hour.
+As part of your submission, you must launch a Linux instanceBig enough to hold the 300-vectors  at Amazon and install your software + necessary data. Then launch your server and keep it running for the duration of our grading period. We will notify you when it's okay to terminate that instance. Choose a server that is only about 5 cents per hour (either medium or large; not sure).
 
-Here is how I launch my server on AWS or locally:
+Here is how I launch my server on AWS (see above) or locally:
  
 ```bash
-$ sudo python server.py ~/data/glove/glove.6B.300d.txt ~/github/msan692/data/bbc
+$ sudo python server.py glove.6B.300d.txt bbc &
 ```
+
+**Note the `&` on the end that launches that server in the background, not the foreground.**  That means that when you log out of the remote computer, breaking the connection, that process still keeps running. It means we can still access the Web server even though you are not connected with ssh.
 
 Note that I have given fully qualified pathnames to the word vectors and the root of the BBC article corpus. The `sudo` is required so that the server runs as the superuser, which is the only user that is able to open a process listening at port 80 (the HTTP web protocol port).
 
@@ -174,5 +253,6 @@ test_server.py::test_sample_articles PASSED
 ========================================== 2 passed in 0.57 seconds ==========================================
 ```
 
-
 *Getting the article list right is worth 20% and getting the recommended articles right is worth 80%.* As you have the complete test, you should be able to get it working and we will grade in binary fashion (works or it doesn't).
+
+*Make sure that your web server process is still running after you break the `ssh` connection by using a browser to connect at your server's public IP address*.

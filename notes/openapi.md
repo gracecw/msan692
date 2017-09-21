@@ -73,7 +73,7 @@ QuoteURL = "https://www.quandl.com/api/v3/datatables/WIKI/PRICES.csv?ticker=%s&a
 Here's my solution from the command line:
 
 ```bash
-$ curl "https://www.quandl.com/api/v3/datatables/WIKI/PRICES.csv?ticker=AAPL&api_key=NGxt-Vnf67v8z_xT-c5B&date.gte=20150101&date.lt=20160101&qopts.columns=date,open"
+$ curl "https://www.quandl.com/api/v3/datatables/WIKI/PRICES.csv?ticker=AAPL&api_key=SECRET&date.gte=20150101&date.lt=20160101&qopts.columns=date,open"
 ```
 
 The data you get back is in CSV format. For stock ticker `TSLA`, you would see two requested fields (close to these values):
@@ -108,16 +108,17 @@ query = sys.argv[1]
 A **technical detail** related to valid strings you can include as part of a URL.  Spaces are not allowed so `John Chan` has to be encoded or "quoted".  Fortunately, `requests` does this automatically for us. If you ever need to quote URLs, use `urllib`:
 
 ```python
-query = urllib.quote(query)
+from requests.utils import quote
+query = quote(query)
 ```
 
 Because `&` is the separator between parameters, it is also invalid in a parameter name or value. Here are some example conversions:
 
 ```python
 >>> import urllib
->>> urllib.quote("john chan")
+>>> quote("john chan")
 'john%20chan'
->>> urllib.quote("john&chan")
+>>> quote("john&chan")
 'john%26chan'
 ```
 

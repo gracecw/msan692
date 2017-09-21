@@ -94,37 +94,40 @@ def words(text):
     Split on space to get word list.
     Ignore words < 3 char long.
     Lowercase all words
+    Remove English stop words
     """
 
 
 def load_articles(articles_dirname, gloves):
     """
-    Load all .txt files under articles_dirname and return a table (list of lists)
+    Load all .txt files under articles_dirname and return a table (list of lists/tuples)
     where each record is a list of:
 
-      [filename, title, article-text-minus-title, wordvec-for-article-text]
+      [filename, title, article-text-minus-title, wordvec-centroid-for-article-text]
 
-    This record will be updated by add_doc2vecs() to include word vectors at position 3
-    of the record.  We use gloves parameter to compute the word vector.
+    We use gloves parameter to compute the word vectors and centroid.
     """
 
 
 def doc2vec(text, gloves):
     """
     Return the word vector centroid for the text. Sum the word vectors
-    for each word and then divide by the number of words.
+    for each word and then divide by the number of words. Ignore words
+    not in gloves.
     """
 
 
 def distances(article, articles):
     """
     Compute the euclidean distance from article to every other article and return
-    a list of (distance, a) tuples for all a in articles.
+    a list of (distance, a) tuples for all a in articles. The article is one
+    of the elements (tuple) from the articles list.
     """
 
 
 def recommended(article, articles, n):
     """
     Return a list of the n articles (records with filename, title, etc...)
-    closest to article's word vector centroid.
+    closest to article's word vector centroid. The article is one of the elements
+    (tuple) from the articles list.
     """
