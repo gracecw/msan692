@@ -22,37 +22,49 @@ A server can specify the lifetime of cookies in terms of seconds to live or that
 
 # Sample HTTP traffic with cookies
 
-My first request to `nytimes.com` results in a cookie coming back from cnn:
+My first request to `http://www.cnn.com/` results in a cookie coming back from cnn:
 
 BROWSER SENDS:
 
 ```
 GET / HTTP/1.1
-Host: www.nytimes.com
-connection=Close
-accept=*/*
+Host: www.cnn.com
+User-Agent: curl/7.49.0
+Accept: */*
 
 ```
 
-HEADERS FROM REMOTE SERVER (sets cookie with name `RMID ` to `007f0102269d57d2fadd0006 `):
+(including of life line at the end)
+
+HEADERS FROM REMOTE SERVER (sets cookies called `countryCode`, `geoData`, and `tryThing00`):
 
 ```
 HTTP/1.1 200 OK
-Server: Apache
-Vary: Host
-X-App-Name: homepage
-Cache-Control: no-cache
+access-control-allow-origin: * 
+cache-control: max-age=60
+content-security-policy: default-src 'self' blob: https://*.cnn.com:* http://*.cnn.com:* *.cnn.io:* *.cnn.net:* *.turner.com:* *.turner.io:* *.ugdturner.com:* courageousstudio.com *.vgtf.net:*; script-src 'unsafe-eval' 'unsafe-inline' 'self' *; style-src 'unsafe-inline' 'self' blob: *; child-src 'self' blob: *; frame-src 'self' *; object-src 'self' *; img-src 'self' data: blob: *; media-src 'self' blob: *; font-src 'self' data: *; connect-src 'self' *; frame-ancestors 'self' *.cnn.com:* *.turner.com:* courageousstudio.com;
 Content-Type: text/html; charset=utf-8
-Transfer-Encoding: chunked
-Date: Fri, 09 Sep 2016 18:09:32 GMT
-Age: 1550
-X-API-Version: 5-5
-X-Cache: hit
-X-PageType: homepage
-nnCoection: close
-X-Frame-Options: DENY
-Set-Cookie: RMID=007f0102269d57d2fadd0006;Path=/; <--------------- COOKIE!Domain=nytimes.com;Expires=Sat, 09 Sep 2017 18:09:32 UTC
+x-content-type-options: nosniff
+x-servedByHost: ::ffff:172.17.30.21
+x-xss-protection: 1; mode=block
+Via: 1.1 varnish
+Fastly-Debug-Digest: 46be59e687681f2cbdc5286ab50024ed035dc360065b1aec7ce355bf418daeb9
+Content-Length: 141398
+Accept-Ranges: bytes
+Date: Thu, 21 Sep 2017 22:36:48 GMT
+Via: 1.1 varnish
+Age: 84
+Connection: keep-alive
+Set-Cookie: countryCode=US; Domain=.cnn.com; Path=/
+Set-Cookie: geoData=san francisco|CA|94117|US|NA; Domain=.cnn.com; Path=/
+Set-Cookie: tryThing00=8432; Domain=.cnn.com; Path=/; Expires=Sun Apr 01 2018 00:00:00 GMT
+X-Served-By: cache-iad2139-IAD, cache-sjc3626-SJC
+X-Cache: HIT, HIT
+X-Cache-Hits: 1, 16
+X-Timer: S1506033409.697123,VS0,VE0
+Vary: Accept-Encoding, Fastly-SSL, Fastly-SSL
 
+... web page html ...
 ```
 
 In the second HTTP request, we see that my browser is sending the cookie back to cnn.
@@ -60,13 +72,15 @@ In the second HTTP request, we see that my browser is sending the cookie back to
 BROWSER SENDS (sends cookie back to the server):
 
 ```
-GET robots.txt HTTP/1.1
-Host: www.nytimes.com
-cookie=RMID=007f0102269d57d2fadd0006           <--------------- COOKIE!
-connection=Close
-accept=*/*
+GET / HTTP/1.1
+Host: www.cnn.com
+User-Agent: curl/7.49.0
+Accept: */*
+Cookie: countryCode=US; geoData=san francisco|CA|94117|US|NA; tryThing00=7772
 
 ```
+
+which sends those cookie keyvalue pairs back to cnn. 
 
 **Exercise:**  Open a fresh tab in your browser and open the developer tools. Then go to CNN.com in the URL text field. In chrome, you should see a bunch of cookies:
 
@@ -109,7 +123,7 @@ CURL is not your browser and so it doesn't know what your cookies are; it just s
 We can also use CURL to send headers, including cookies, back to the server as if it were a browser.
 
 ```bash
-$ curl --cookie a=a611ba358d77595991882a6d595ab359cedd8952713792e6172e900c7a5779c7 -v www.nytimes.com
+$ curl --cookie nyt-a=a611ba358d77595991882a6d595ab359cedd8952713792e6172e900c7a5779c7 -v www.nytimes.com
 * Rebuilt URL to: www.nytimes.com/
 *   Trying 151.101.41.164...
 * Connected to www.nytimes.com (151.101.41.164) port 80 (#0)
@@ -117,7 +131,7 @@ $ curl --cookie a=a611ba358d77595991882a6d595ab359cedd8952713792e6172e900c7a5779
 > Host: www.nytimes.com
 > User-Agent: curl/7.49.0
 > Accept: */*
-> Cookie: a=a611ba358d77595991882a6d595ab359cedd8952713792e6172e900c7a5779c7
+> Cookie: nyt-a=a611ba358d77595991882a6d595ab359cedd8952713792e6172e900c7a5779c7
 > 
 < HTTP/1.1 301 Moved Permanently
 < Server: Varnish
@@ -133,10 +147,20 @@ $ curl --cookie a=a611ba358d77595991882a6d595ab359cedd8952713792e6172e900c7a5779
 
 Notice how `curl` has sent a cookie with the request, `> Cookie: a=a611...`.  Also note that it is different than the cookie response, `< Set-Cookie: nyt-a=4ac2...`.  No doubt the cookie encodes all sorts of information that the New York Times wants to track for each user.
 
+If you'd like to save all cookies coming back from a server, you can use curl with `-c` to store cookies in a "cookie jar" file and `-b` to send those cookies back:
+
+```bash
+$ curl -v -c /tmp/cookies http://www.cnn.com/
+...
+$ curl -v -b /tmp/cookies http://www.cnn.com/
+...
+```
+
 # How ad companies track you
 
 ## Background
-The browser sends cookies to remote servers even for images, not just webpages. Consider the following simple webpage with a reference to an image on another site. This HTML file would presumably be on some server xyz.com:
+
+We've already seen an example the webpage that refers to an image from my antlr site:
 
 <img src=figures/pageimg.png width=400>
 
@@ -144,7 +168,9 @@ The HTML asks the browser to display a simple image:
 
 <img src=http://www.antlr.org/images/icons/antlr.png>
 
-Your browser makes **two** web requests, one to xyz.com to get the HTML page and **another** to www.antlr.org for the image. This gives `antlr.org` the opportunity to send cookies to the browser, say, *X=Y*. Any page, literally anywhere on the Internet, that references *anything* at `antlr.org` will send that *X=Y* cookie back to the `antlr.org` server along with the image request. Now `antlr.org` knows whenever you access a webpage containing one of its images. It can use the *Y* value to uniquely identify users simply by creating a unique identifier as *Y* for every new `antlr.org` request.
+Recall that your browser makes **two** web requests, one to xyz.com to get the HTML page and **another** to www.antlr.org for the image.  
+
+It not only notifies the `antlr.org` server but the image reference gives `antlr.org` the opportunity to send cookies to the browser, say, *X=Y*. Any page, literally anywhere on the Internet, that references *anything* at `antlr.org` will send that *X=Y* cookie back to the `antlr.org` server along with the image request. Now `antlr.org` knows whenever you access a webpage containing one of its images. It can use the *Y* value to uniquely identify users simply by creating a unique identifier as *Y* for every new `antlr.org` request (any request that does not come in with antlr cookies set).
 
 ## Using hidden images to track users
 
@@ -173,19 +199,17 @@ There are a number of things to notice here:
 
 Now, imagine that I go to a random website X that happens to have an ad from `realmedia.com`. My browser will send all cookies associated with `realmedia.com` to their server, effectively notifying them that I am looking at X. `realmedia.com` will know about every page I visit that contains their ads *anywhere on the Internet*.
 
-Recently I was looking at hotels in San Diego and also purchasing some cat food on a different website. Then I went to Facebook and saw ads for the exact rooms and cat food I was looking for. This all works through the magic of cookies. There is a big ad clearinghouse where FB can ask if anybody is interested in serving ads to one of its users with a unique identifier. Hopefully they don't pass along your identity, but your browser still passes along your cookies for that ad server domain. The ad companies can then bid to send you an ad. Because your browser keeps sending the same cookies to them regardless of the website, hotel and pet food sites can show you ads for what you were just looking at on a completely unrelated site. wow. Here is a visualization of me visiting two different non-FB websites.
+Recently I was looking at hotels in San Diego and also purchasing some cat food on a different website. Then I went to Facebook and saw ads for the exact rooms and cat food I was just looking at! This all works through the magic of cookies.
 
-<img src="figures/fb-ads.png">
+The easiest mechanism to make this work is as follows. The HTML pages coming back from hotelfoo.com and petfoo.com have hidden img tags (or maybe JavaScript but let's assume an image) that refer to URLs on some third-party ad company's server. For example, something akin to `<img src=ads.com/ad.png?page=hotelfoo.com/oceanview>`.  Because of the reference to ads.com, our browser contacts the ads.com server. That ads.com server can send back and store cookies on my laptop that identify me as, for example ID=99. They don't know who I am but they know that they have assigned a unique identifier to my specific browser. Every time my browser sees a reference to ads.com in some web page, it will send back the ads.com ID=99 cookie to ads.com. Notice that there is a `page` parameter on the image reference that identifies the page containing the image. In other words, the ad company knows that ID 99 visited page `hotelfoo.com/oceanview`.
 
-The HTML pages coming back from hotelfoo.com and petfoo.com have hidden images (or maybe JavaScript but let's assume an image). These images are hidden references to facebook's server, who knows me as ID=99. The image reference is more than a reference to an invisible image---there is a parameter on the image reference that identifies the page containing the image. For example, something akin to `<img src=facebook.com/ad.png?page=hotelfoo.com/oceanview>`.  
+Now imagine I go to the pet food company that also has a hidden image reference to ads.com, such as `<img src=ads.com/ad.png?page=petfoo.com/catfood>`. My browser will send ID=99 to the ad company and let it know that I have also visited page `petfoo.com/catfood`.  Here is a visualization of me visiting two different non-FB websites.
 
-The next time I visit facebook.com, that server quickly asks any advertisers if they would like to purchase and add on my webpage. 
+<img src="figures/fb-ads.png" width=400>
 
-<img src="figures/fb-ads-show.png">
+The next time I visit facebook.com, the FB server quickly asks ads.com to send it an advertisement from one of its customers, in this case hotelfoo and petfoo. Those customers bid in an auction to show me an ad on Facebook. The ad company tells the hotel or pet food company which pages I have visited, which lets them decide whether to sell me an ad and also what ad to show. This all happens very quickly and in essence is just another image reference on the Facebook page.
 
-This of course is a function of what pages I have visited on the hotel and cat food sites. I'm sure they also provide demographic data on the user to the companies wanting to show ads.
-
-This technology is not all bad. Obviously, Google analytics requires a tiny little image the embedded in your webpages so that it can track things and give you statistics.
+This technology is scary but not all bad. Obviously, Google analytics requires a tiny little image the embedded in your webpages so that it can track things and give you statistics.
 
 # Accessing cookies in Python
 
@@ -233,7 +257,7 @@ i set some cookies. haha!
 Try doing the same thing in the browser using the developer tools to see the cookies:
 
 <img src=figures/setcookie.png width=400>
- 
+
 ## Fetch cookies
 
 Once a server has sent cookies to a browser, the browser will send those cookies back to the server upon each request. In order to get those cookies, the flask "view" function can simply pull them out from the dictionary sent to the server by the browser. Very handy. 
@@ -249,7 +273,7 @@ def getcookie():
 
 Please make the distinction in your head between GET URL parameters and cookies. GET parameters come in to the server as `?x=y` on the URL itself whereas cookies come in as part of the GET headers, not the URL.
 
-**Exercise**: Upgrade the server from the previous section that sets cookies to include this code to fetch the cookie. Now open pages in the browser in the following sequence to set and get cookies:
+**Exercise**: Upgrade the server from the previous section, that sets cookies, to include `getcookie()` to fetch the cookie. Now open pages in the browser in the following sequence to set and get cookies:
 
 ```
 http://127.0.0.1:5000/setcookie

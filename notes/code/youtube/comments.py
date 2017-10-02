@@ -4,7 +4,6 @@ from googleapiclient.discovery import build
 
 DEVELOPER_KEY = sys.argv[1]
 QUERY = sys.argv[2] # e.g., "cats and dogs"
-QUERY = urllib.quote(QUERY)
 YOUTUBE_API_SERVICE_NAME = "youtube"
 YOUTUBE_API_VERSION = "v3"
 
@@ -42,7 +41,7 @@ def comments(query):
     return comments
 
 allcomments = comments(QUERY)
-for vid in allcomments:
+for vid in allcomments.keys()[:5]: # just 5 videos
     comments = allcomments[vid]
     print "Video "+vid
     print "\t",

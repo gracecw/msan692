@@ -1,7 +1,5 @@
 # Zillow
 
-*Zillow apparently now blocks all of my API requests with a captcha. Grrrrrrr. I'm not the only one who's had this problem. Let's hope they fix it.*
-
 Most sites nowadays require you to register in order to access their data spigot, but some of them don't require authentication. You just need to have your secret ID in order to communicate with them. Zillow is such a site and is straightforward to pull data from, so it is how we will start with the more complicated APIs.
 
 In order to pull data from the real estate website [Zillow](http://www.zillow.com), you must:
@@ -30,16 +28,16 @@ You have to pass your ID and the property ID.
 ```python
 import sys
 import untangle
-import urllib2
 
 KEY = sys.argv[1]  # your zillow api key/id as argument to script
 
 # Find out how much property 64969892 is worth
 zpid = '64969892'
-QuoteURL = "http://www.zillow.com/webservice/GetZestimate.htm?zws-id=%s&zpid=%s"
-URL = QuoteURL % (KEY, zpid)
-response = urllib2.urlopen(URL)
-xmldata = response.read()  # read all data
+URL = "http://www.zillow.com/webservice/GetZestimate.htm?zws-id=%s&zpid=%s" % (KEY,zpid)
+print URL
+response = requests.get(URL)
+xmldata = unicode.encode(response.text, encoding='ascii', errors='ignore')
+
 print xmldata
 ```
 
@@ -161,4 +159,4 @@ If there is no error you get `<code>0</code>` in the message, whereas here you c
   ...
 ```
 
-You want to print out the `url` tag in `response` tag. Then click on it and you will see a nice chart.
+You want to print out the `url` tag in `response` tag: `xml.Chart_chart.response.url.cdata` via untangle. Then click on it and you will see a nice chart.
